@@ -84,6 +84,12 @@ static RNUnityView *sharedInstance;
 - (void)layoutSubviews {
    [super layoutSubviews];
 
+   // PR #174 fix: Initialize Unity in layoutSubviews for Fabric compatibility
+   // updateProps is not reliably called in the new architecture
+   if (![self unityIsInitialized] && self.bounds.size.width > 0 && self.bounds.size.height > 0) {
+       [self initUnityModule];
+   }
+
    if([self unityIsInitialized]) {
       self.ufw.appController.rootView.frame = self.bounds;
       [self addSubview:self.ufw.appController.rootView];
