@@ -44,12 +44,20 @@ Pod::Spec.new do |s|
   # Find UnityFramework.framework by searching upward from the podspec directory.
   # CocoaPods skips prepare_command for local (:path) pods, so we resolve at podspec
   # evaluation time using Ruby instead.
+  # Checks both direct path and apps/*/  subdirs for monorepo support.
   unity_framework_path = nil
   search_dir = File.expand_path('../../..', __dir__)
   while search_dir != '/'
+    # Direct: <dir>/unity/builds/ios/UnityFramework.framework
     candidate = File.join(search_dir, 'unity', 'builds', 'ios', 'UnityFramework.framework')
     if File.directory?(candidate)
       unity_framework_path = candidate
+      break
+    end
+    # Monorepo: <dir>/apps/*/unity/builds/ios/UnityFramework.framework
+    matches = Dir.glob(File.join(search_dir, 'apps', '*', 'unity', 'builds', 'ios', 'UnityFramework.framework'))
+    if matches.any?
+      unity_framework_path = matches.first
       break
     end
     search_dir = File.dirname(search_dir)
