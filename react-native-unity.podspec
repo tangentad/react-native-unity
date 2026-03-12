@@ -41,26 +41,28 @@ Pod::Spec.new do |s|
    end
   end
 
-  # Copy the framework to the plugin folder so that xcode can install it
-  # The framework should be placed in the <YOUR_PROJECT>/unity/builds/ios folder.
-  # Searches upward from node_modules to find unity/builds/ios (monorepo-safe).
-  s.prepare_command =
-  <<-CMD
-    SEARCH_DIR="$(cd ../../.. && pwd)"
-    FRAMEWORK_DIR=""
-    while [ "$SEARCH_DIR" != "/" ]; do
-      if [ -d "$SEARCH_DIR/unity/builds/ios/UnityFramework.framework" ]; then
-        FRAMEWORK_DIR="$SEARCH_DIR/unity/builds/ios"
-        break
-      fi
-      SEARCH_DIR="$(dirname "$SEARCH_DIR")"
-    done
-    if [ -n "$FRAMEWORK_DIR" ]; then
-      cp -R "$FRAMEWORK_DIR/" ios/
-    else
-      echo "WARNING: UnityFramework.framework not found. Place it in <app>/unity/builds/ios/"
-    fi
-  CMD
+  # Find UnityFramework.framework by searching upward from the podspec directory.
+  # CocoaPods skips prepare_command for local (:path) pods, so we resolve at podspec
+  # evaluation time using Ruby instead.
+  unity_framework_path = nil
+  search_dir = File.expand_path('../../..', __dir__)
+  while search_dir != '/'
+    candidate = File.join(search_dir, 'unity', 'builds', 'ios', 'UnityFramework.framework')
+    if File.directory?(candidate)
+      unity_framework_path = candidate
+      break
+    end
+    search_dir = File.dirname(search_dir)
+  end
 
-  s.vendored_frameworks = ["ios/UnityFramework.framework"]
+  if unity_framework_path
+    s.vendored_frameworks = [unity_framework_path]
+  else
+    # Fallback: assume prepare_command ran (non-local pod installs)
+    s.prepare_command =
+    <<-CMD
+      cp -R ../../../unity/builds/ios/ ios/
+    CMD
+    s.vendored_frameworks = ["ios/UnityFramework.framework"]
+  end
 end
