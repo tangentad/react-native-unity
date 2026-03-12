@@ -1,4 +1,5 @@
 require "json"
+require "pathname"
 
 package = JSON.parse(File.read(File.join(__dir__, "package.json")))
 folly_compiler_flags = '-DFOLLY_NO_CONFIG -DFOLLY_MOBILE=1 -DFOLLY_USE_LIBCPP=1 -Wno-comma -Wno-shorten-64-to-32'
@@ -64,7 +65,9 @@ Pod::Spec.new do |s|
   end
 
   if unity_framework_path
-    s.vendored_frameworks = [unity_framework_path]
+    # CocoaPods requires relative paths — compute from podspec directory
+    relative = Pathname.new(unity_framework_path).relative_path_from(Pathname.new(__dir__)).to_s
+    s.vendored_frameworks = [relative]
   else
     # Fallback: assume prepare_command ran (non-local pod installs)
     s.prepare_command =
