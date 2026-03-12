@@ -43,9 +43,23 @@ Pod::Spec.new do |s|
 
   # Copy the framework to the plugin folder so that xcode can install it
   # The framework should be placed in the <YOUR_PROJECT>/unity/builds/ios folder.
+  # Searches upward from node_modules to find unity/builds/ios (monorepo-safe).
   s.prepare_command =
   <<-CMD
-    cp -R ../../../unity/builds/ios/ ios/
+    SEARCH_DIR="$(cd ../../.. && pwd)"
+    FRAMEWORK_DIR=""
+    while [ "$SEARCH_DIR" != "/" ]; do
+      if [ -d "$SEARCH_DIR/unity/builds/ios/UnityFramework.framework" ]; then
+        FRAMEWORK_DIR="$SEARCH_DIR/unity/builds/ios"
+        break
+      fi
+      SEARCH_DIR="$(dirname "$SEARCH_DIR")"
+    done
+    if [ -n "$FRAMEWORK_DIR" ]; then
+      cp -R "$FRAMEWORK_DIR/" ios/
+    else
+      echo "WARNING: UnityFramework.framework not found. Place it in <app>/unity/builds/ios/"
+    fi
   CMD
 
   s.vendored_frameworks = ["ios/UnityFramework.framework"]
