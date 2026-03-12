@@ -1,5 +1,4 @@
 require "json"
-require "pathname"
 
 package = JSON.parse(File.read(File.join(__dir__, "package.json")))
 folly_compiler_flags = '-DFOLLY_NO_CONFIG -DFOLLY_MOBILE=1 -DFOLLY_USE_LIBCPP=1 -Wno-comma -Wno-shorten-64-to-32'
@@ -42,38 +41,14 @@ Pod::Spec.new do |s|
    end
   end
 
-  # Find UnityFramework.framework by searching upward from the podspec directory.
-  # CocoaPods skips prepare_command for local (:path) pods, so we resolve at podspec
-  # evaluation time using Ruby instead.
-  # Checks both direct path and apps/*/  subdirs for monorepo support.
-  unity_framework_path = nil
-  search_dir = File.expand_path('../../..', __dir__)
-  while search_dir != '/'
-    # Direct: <dir>/unity/builds/ios/UnityFramework.framework
-    candidate = File.join(search_dir, 'unity', 'builds', 'ios', 'UnityFramework.framework')
-    if File.directory?(candidate)
-      unity_framework_path = candidate
-      break
-    end
-    # Monorepo: <dir>/apps/*/unity/builds/ios/UnityFramework.framework
-    matches = Dir.glob(File.join(search_dir, 'apps', '*', 'unity', 'builds', 'ios', 'UnityFramework.framework'))
-    if matches.any?
-      unity_framework_path = matches.first
-      break
-    end
-    search_dir = File.dirname(search_dir)
-  end
+  # The framework must be present at ios/UnityFramework.framework before pod install.
+  # For local (:path) pods, prepare_command is skipped by CocoaPods.
+  # Use a postinstall script in your app's package.json to copy it:
+  #   "postinstall": "scripts/copy-unity-framework.sh"
+  s.prepare_command =
+  <<-CMD
+    cp -R ../../../unity/builds/ios/ ios/
+  CMD
 
-  if unity_framework_path
-    # CocoaPods requires relative paths — compute from podspec directory
-    relative = Pathname.new(unity_framework_path).relative_path_from(Pathname.new(__dir__)).to_s
-    s.vendored_frameworks = [relative]
-  else
-    # Fallback: assume prepare_command ran (non-local pod installs)
-    s.prepare_command =
-    <<-CMD
-      cp -R ../../../unity/builds/ios/ ios/
-    CMD
-    s.vendored_frameworks = ["ios/UnityFramework.framework"]
-  end
+  s.vendored_frameworks = ["ios/UnityFramework.framework"]
 end
