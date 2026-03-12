@@ -41,14 +41,8 @@ Pod::Spec.new do |s|
    end
   end
 
-  # The framework must be present at ios/UnityFramework.framework before pod install.
-  # For local (:path) pods, prepare_command is skipped by CocoaPods.
-  # Use a postinstall script in your app's package.json to copy it:
-  #   "postinstall": "scripts/copy-unity-framework.sh"
-  s.prepare_command =
-  <<-CMD
-    cp -R ../../../unity/builds/ios/ ios/
-  CMD
-
+  # The framework must be at ios/UnityFramework.framework before pod install.
+  # In a monorepo, use a postinstall script to copy it from your app's
+  # unity/builds/ios/ directory into this package's ios/ directory.
   s.vendored_frameworks = ["ios/UnityFramework.framework"]
 end
