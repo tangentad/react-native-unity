@@ -96,13 +96,20 @@ static RNUnityView *sharedInstance;
    }
 }
 
-- (void)pauseUnity:(BOOL * _Nonnull)pause {
+- (void)pauseUnity:(BOOL)pause {
+    if (![self ufw]) return;
     if([self unityIsInitialized]) {
         [[self ufw] pause:pause];
     }
 }
 
+- (void)resumeUnity {
+    [self pauseUnity:NO];
+}
+
 - (void)unloadUnity {
+    if (![self ufw]) return;
+
     UIWindow * main = [[[UIApplication sharedApplication] delegate] window];
     if(main != nil) {
         [main makeKeyAndVisible];
